@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
+	"log/slog"
 	"starter/internal/config"
+	"starter/internal/logger"
 	"strconv"
 	"time"
 
@@ -43,7 +44,8 @@ func New() Service {
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Username, cfg.Password, cfg.Host, strconv.Itoa(cfg.Port), cfg.Database, cfg.Schema)
 	if err != nil {
-		log.Fatal(err)
+		slog.LogAttrs(context.Background(), logger.LevelFatal, "Failed to create database pool", slog.Any("err", err))
+		panic(1)
 	}
 	dbInstance = &service{
 		db: db,
@@ -64,7 +66,7 @@ func (s *service) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		slog.LogAttrs(context.Background(), logger.LevelFatal, "ping database", slog.Any("err", err))
 		return stats
 	}
 
@@ -107,6 +109,7 @@ func (s *service) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", database)
-	return s.db.Close()
+	s.db.Close()
+
+	return nil
 }

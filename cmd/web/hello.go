@@ -1,7 +1,8 @@
 package web
 
 import (
-	"log"
+	"context"
+	"log/slog"
 	"net/http"
 )
 
@@ -16,6 +17,6 @@ func HelloWebHandler(w http.ResponseWriter, r *http.Request) {
 	err = component.Render(r.Context(), w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Fatalf("Error rendering in HelloWebHandler: %e", err)
+		slog.LogAttrs(context.Background(), slog.LevelError, "rendering HelloPost", slog.Any("err", err))
 	}
 }
