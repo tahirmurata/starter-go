@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "scripts": {
+    "watch:go": "go tool github.com/bokwoon95/wgo run cmd/api/main.go",
+    "watch:tailwindcss": "tailwindcss --cwd cmd/web -i styles/input.css -o assets/css/output.css -m -w",
+    "watch:templ": "go tool github.com/bokwoon95/wgo -file=.templ go tool github.com/a-h/templ/cmd/templ generate",
+    "watch:sqlc": "go tool github.com/bokwoon95/wgo -dir=sqlc -file=.sql -xfile=.go go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate -f sqlc/sqlc.yml",
+    "build:go": "go build -o main cmd/api/main.go",
+    "build:tailwindcss": "tailwindcss --cwd cmd/web -i styles/input.css -o assets/css/output.css -m",
+    "build:templ": "go tool github.com/a-h/templ/cmd/templ generate",
+    "build:sqlc": "cd sqlc && go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.12",
+    "@types/bun": "^1.2.4",
+    "daisyui": "^5.0.0"
+  }
+}
