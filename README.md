@@ -15,6 +15,7 @@ Minimal but opinionated starter project for Go applications
 - **PostgreSQL** - Open-source relational database
   - **sqlc** - Generate type-safe Go code from SQL
   - **pgx** - PostgreSQL driver and toolkit for Go
+  - **dockertest** - Run Docker containers for integration tests
 
 ## Getting Started
 
@@ -55,6 +56,6 @@ Build the Go binary
 $ bun run scripts/build
 ```
 
-## UNLICENSE
+## License
 
-This project is (un)licensed under the [Unlicense](UNLICENSE).
+This project is released into the public domain under the [Unlicense](UNLICENSE).

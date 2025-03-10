@@ -11,30 +11,29 @@ import (
 
 // Global koanf instance. Use . as the key path delimiter. This can be / or anything.
 var (
-	k              = koanf.New(".")
-	configInstance *Config
+	k = koanf.New(".")
 )
 
+type App struct {
+	Port string `koanf:"port"`
+	Env  string `koanf:"env"`
+}
+
+type Database struct {
+	Host     string `koanf:"host"`
+	Port     string `koanf:"port"`
+	Database string `koanf:"database"`
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
+	Schema   string `koanf:"schema"`
+}
+
 type Config struct {
-	App struct {
-		Port int    `koanf:"port"`
-		Env  string `koanf:"env"`
-	} `koanf:"app"`
-	Database struct {
-		Host     string `koanf:"host"`
-		Port     int    `koanf:"port"`
-		Database string `koanf:"database"`
-		Username string `koanf:"username"`
-		Password string `koanf:"password"`
-		Schema   string `koanf:"schema"`
-	} `koanf:"database"`
+	App      App      `koanf:"app"`
+	Database Database `koanf:"database"`
 }
 
 func New() *Config {
-	if configInstance != nil {
-		return configInstance
-	}
-
 	// Load YAML config.
 	f := file.Provider("config.yml")
 	parser := yaml.Parser()
@@ -42,6 +41,8 @@ func New() *Config {
 		slog.LogAttrs(context.Background(), slog.LevelError+4, "Failed to load config", slog.Any("err", err))
 		panic(1)
 	}
+
+	var configInstance *Config
 
 	// Unmarshal to configInstance
 	err := k.Unmarshal("", &configInstance)

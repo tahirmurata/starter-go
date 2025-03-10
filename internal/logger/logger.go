@@ -13,18 +13,15 @@ const (
 )
 
 const (
-	ansiReset          = "\u001b[0m"
-	ansiBrightRed      = "\u001b[91m"
-	ansiBrightRedFaint = "\u001b[91;2m"
-	ansiBold           = "\u001b[1m"
+	ansiReset     = "\u001b[0m"
+	ansiBrightRed = "\u001b[91m"
+	ansiBold      = "\u001b[1m"
 )
 
-func init() {
+func Init(cfg *config.Config) {
 	var logger *slog.Logger
 
-	env := config.New().App.Env
-
-	switch env {
+	switch cfg.App.Env {
 	case "development":
 		logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 			TimeFormat: "03:04:05",

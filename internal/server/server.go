@@ -3,36 +3,31 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
-	"time"
 
+	"starter/internal/config"
 	"starter/internal/database"
 )
 
 type Server struct {
-	port int
+	port string
 
-	db database.Service
+	db database.ServiceManager
 }
 
-func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	NewServer := &Server{
-		port: port,
-	cfg := config.New().App
-		port: cfg.Port,
+func New(cfg *config.Config) *http.Server {
+	newServer := &Server{
+		port: cfg.App.Port,
 
-		db: database.New(),
+		db: database.New(cfg),
 	}
 
 	// Declare Server config
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", NewServer.port),
-		Handler:      NewServer.RegisterRoutes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		Addr:    fmt.Sprintf(":%s", newServer.port),
+		Handler: newServer.RegisterRoutes(),
+		// IdleTimeout:  time.Minute,
+		// ReadTimeout:  10 * time.Second,
+		// WriteTimeout: 30 * time.Second,
 	}
 
 	return server

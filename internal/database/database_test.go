@@ -2,81 +2,130 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
+	"starter/internal/config"
 	"testing"
 	"time"
 
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
-func mustStartPostgresContainer() (func(context.Context, ...testcontainers.TerminateOption) error, error) {
-	var (
-		dbName = "database"
-		dbPwd  = "password"
-		dbUser = "user"
-	)
-
-	dbContainer, err := postgres.Run(
-		context.Background(),
-		"postgres:latest",
-		postgres.WithDatabase(dbName),
-		postgres.WithUsername(dbUser),
-		postgres.WithPassword(dbPwd),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(5*time.Second)),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	database = dbName
-	password = dbPwd
-	username = dbUser
-
-	dbHost, err := dbContainer.Host(context.Background())
-	if err != nil {
-		return dbContainer.Terminate, err
-	}
-
-	dbPort, err := dbContainer.MappedPort(context.Background(), "5432/tcp")
-	if err != nil {
-		return dbContainer.Terminate, err
-	}
-
-	host = dbHost
-	port = dbPort.Port()
-
-	return dbContainer.Terminate, err
-}
+var cfg *config.Config
 
 func TestMain(m *testing.M) {
-	teardown, err := mustStartPostgresContainer()
+	databaseName := "database"
+	databaseUsername := "username"
+	databasePassword := "password"
+
+	// Create a new pool
+	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("could not start postgres container: %v", err)
+		log.Fatalf("Could not construct pool: %s", err)
 	}
+
+	// Check if Docker is running
+	err = pool.Client.Ping()
+	if err != nil {
+		log.Fatalf("Could not connect to Docker: %s", err)
+	}
+
+	// Create the Postgres container with options
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "17",
+		Env: []string{
+			fmt.Sprintf("POSTGRES_DB=%s", databaseName),
+			fmt.Sprintf("POSTGRES_USER=%s", databaseUsername),
+			fmt.Sprintf("POSTGRES_PASSWORD=%s", databasePassword),
+			"listen_addresses = '*'",
+		},
+	}, func(config *docker.HostConfig) {
+		// Auto-remove container when stopped
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{
+			Name: "no",
+		}
+	})
+	if err != nil {
+		log.Fatalf("Could not start resource: %s", err)
+	}
+
+	// Get host and port
+	hostAndPort := resource.GetHostPort("5432/tcp")
+	host, port, err := net.SplitHostPort(hostAndPort)
+	if err != nil {
+		log.Fatalf("Could not split hostAndPort: %s", err)
+	}
+
+	resource.Expire(120) // Tell docker to hard kill the container in 120 seconds
+
+	// Create the config
+	cfg = &config.Config{
+		App: config.App{
+			Port: "5432",
+			Env:  "test",
+		},
+		Database: config.Database{
+			Host:     host,
+			Port:     port,
+			Database: databaseName,
+			Username: databaseUsername,
+			Password: databasePassword,
+			Schema:   "public",
+		},
+	}
+
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.Schema)
+	log.Println("Connecting to database on url: ", databaseURL)
+
+	var db *pgxpool.Pool
+
+	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	pool.MaxWait = 120 * time.Second
+	if err = pool.Retry(func() error {
+		db, err = pgxpool.New(context.Background(), databaseURL)
+		if err != nil {
+			return err
+		}
+		return db.Ping(context.Background())
+	}); err != nil {
+		log.Fatalf("Could not connect to docker: %s", err)
+	}
+
+	dbInstance = &service{
+		db: &database{
+			pool: db,
+		},
+	}
+
+	defer func() {
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("Could not purge resource: %s", err)
+		}
+	}()
 
 	m.Run()
-
-	if teardown != nil && teardown(context.Background()) != nil {
-		log.Fatalf("could not teardown postgres container: %v", err)
-	}
 }
 
 func TestNew(t *testing.T) {
-	srv := New()
+	srv := New(cfg)
 	if srv == nil {
 		t.Fatal("New() returned nil")
 	}
 }
 
 func TestHealth(t *testing.T) {
-	srv := New()
+	ctx := context.Background()
+	srv := New(cfg)
 
-	stats := srv.Health()
+	stats, err := srv.Health(ctx)
+	if err != nil {
+		t.Fatalf("expected Health to return nil, go %s", err)
+	}
 
 	if stats["status"] != "up" {
 		t.Fatalf("expected status to be up, got %s", stats["status"])
@@ -86,15 +135,13 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("expected error not to be present")
 	}
 
-	if stats["message"] != "It's healthy" {
-		t.Fatalf("expected message to be 'It's healthy', got %s", stats["message"])
+	if stats["message"] != "bing chilling" {
+		t.Fatalf("expected message to be 'bing chilling', got %s", stats["message"])
 	}
 }
 
 func TestClose(t *testing.T) {
-	srv := New()
+	srv := New(cfg)
 
-	if srv.Close() != nil {
-		t.Fatalf("expected Close() to return nil")
-	}
+	srv.Close()
 }

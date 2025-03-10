@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"starter/internal/config"
 	"starter/internal/logger"
 	"starter/internal/server"
 )
@@ -39,19 +41,22 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
+	cfg := config.New()
 
-	server := server.NewServer()
+	logger.Init(cfg)
+
+	newServer := server.New(cfg)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
 
 	// Run graceful shutdown in a separate goroutine
-	go gracefulShutdown(server, done)
+	go gracefulShutdown(newServer, done)
 
-	slog.LogAttrs(context.Background(), slog.LevelInfo, fmt.Sprintf("Listening on %s", server.Addr))
-	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		slog.LogAttrs(context.Background(), logger.LevelFatal, "HTTP server error", slog.Any("err", err))
+	slog.LogAttrs(context.Background(), slog.LevelInfo, fmt.Sprintf("Listening on %s", newServer.Addr))
+	err := newServer.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.LogAttrs(context.Background(), logger.LevelFatal, "HTTP newServer error", slog.Any("err", err))
 		panic(1)
 	}
 
