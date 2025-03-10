@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/parsers/toml/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
@@ -35,8 +35,8 @@ type Config struct {
 
 func New() *Config {
 	// Load YAML config.
-	f := file.Provider("config.yml")
-	parser := yaml.Parser()
+	f := file.Provider("config.toml")
+	parser := toml.Parser()
 	if err := k.Load(f, parser); err != nil {
 		slog.LogAttrs(context.Background(), slog.LevelError+4, "Failed to load config", slog.Any("err", err))
 		panic(1)
