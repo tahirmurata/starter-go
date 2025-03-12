@@ -12,8 +12,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@tailwindcss/cli": "^4.0.12",
-    "@types/bun": "^1.2.4",
-    "daisyui": "^5.0.0"
+    "@tailwindcss/cli": "^4.0.13",
+    "@types/bun": "^1.2.5",
+    "daisyui": "^5.0.2"
   }
 }
