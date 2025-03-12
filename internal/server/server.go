@@ -14,11 +14,16 @@ type Server struct {
 	db database.ServiceManager
 }
 
-func New(cfg *config.Config) *http.Server {
+func New(cfg *config.Config) (*http.Server, error) {
+	db, err := database.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("creating database: %w", err)
+	}
+
 	newServer := &Server{
 		port: cfg.App.Port,
 
-		db: database.New(cfg),
+		db: db,
 	}
 
 	// Declare Server config
@@ -30,5 +35,5 @@ func New(cfg *config.Config) *http.Server {
 		// WriteTimeout: 30 * time.Second,
 	}
 
-	return server
+	return server, nil
 }

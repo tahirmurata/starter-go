@@ -1,17 +1,12 @@
 package config
 
 import (
-	"context"
-	"log/slog"
+	"fmt"
+	"sync"
 
 	"github.com/knadh/koanf/parsers/toml/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-)
-
-// Global koanf instance. Use . as the key path delimiter. This can be / or anything.
-var (
-	k = koanf.New(".")
 )
 
 type App struct {
@@ -33,23 +28,29 @@ type Config struct {
 	Database Database `koanf:"database"`
 }
 
-func New() *Config {
-	// Load YAML config.
-	f := file.Provider("config.toml")
-	parser := toml.Parser()
-	if err := k.Load(f, parser); err != nil {
-		slog.LogAttrs(context.Background(), slog.LevelError+4, "Failed to load config", slog.Any("err", err))
-		panic(1)
-	}
+var once sync.Once
+var configInstance *Config
 
-	var configInstance *Config
+func New() (*Config, error) {
+	var configError error
+	once.Do(func() {
+		k := koanf.New(".")
 
-	// Unmarshal to configInstance
-	err := k.Unmarshal("", &configInstance)
-	if err != nil {
-		slog.LogAttrs(context.Background(), slog.LevelError+4, "Failed to unmarshal config", slog.Any("err", err))
-		panic(1)
-	}
+		// Load YAML config.
+		f := file.Provider("config.toml")
+		parser := toml.Parser()
+		if err := k.Load(f, parser); err != nil {
+			configError = fmt.Errorf("loading config: %w", err)
+			return
+		}
 
-	return configInstance
+		// Unmarshal to configInstance
+		err := k.Unmarshal("", &configInstance)
+		if err != nil {
+			configError = fmt.Errorf("unmarshaling config: %w", err)
+			return
+		}
+	})
+
+	return configInstance, configError
 }

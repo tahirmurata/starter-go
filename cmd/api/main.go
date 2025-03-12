@@ -41,11 +41,19 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
-	cfg := config.New()
+	cfg, err := config.New()
+	if err != nil {
+		slog.LogAttrs(context.Background(), logger.LevelFatal, "Failed to get config", slog.Any("err", err))
+		panic(1)
+	}
 
 	logger.Init(cfg)
 
-	newServer := server.New(cfg)
+	newServer, err := server.New(cfg)
+	if err != nil {
+		slog.LogAttrs(context.Background(), logger.LevelFatal, "Failed to get server", slog.Any("err", err))
+		panic(1)
+	}
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
@@ -54,7 +62,7 @@ func main() {
 	go gracefulShutdown(newServer, done)
 
 	slog.LogAttrs(context.Background(), slog.LevelInfo, fmt.Sprintf("Listening on %s", newServer.Addr))
-	err := newServer.ListenAndServe()
+	err = newServer.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.LogAttrs(context.Background(), logger.LevelFatal, "HTTP newServer error", slog.Any("err", err))
 		panic(1)

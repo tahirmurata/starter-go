@@ -2,12 +2,10 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log/slog"
 	"starter/internal/config"
-	"starter/internal/logger"
 	"starter/internal/sqlc"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,45 +43,43 @@ type service struct {
 }
 
 var dbInstance *service
+var once sync.Once
 
-func New(cfg *config.Config) ServiceManager {
-	// Reuse Connection
-	if dbInstance != nil {
-		return dbInstance
-	}
-	db, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.Schema))
-	if err != nil {
-		slog.LogAttrs(context.Background(), logger.LevelFatal, "Failed to create database pool", slog.Any("err", err))
-		panic(1)
-	}
+func New(cfg *config.Config) (ServiceManager, error) {
+	var initError error
+	once.Do(func() {
+		db, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.Schema))
+		if err != nil {
+			initError = fmt.Errorf("creating pgx pool: %w", err)
+			return
+		}
 
-	dbInstance = &service{
-		db: &database{
-			pool: db,
-		},
-	}
+		dbInstance = &service{
+			db: &database{
+				pool: db,
+			},
+		}
+	})
 
-	return dbInstance
+	return dbInstance, initError
 }
 
 func (s *service) Health(ctx context.Context) (stats map[string]string, err error) {
-	if err := s.db.InReadTx(ctx, func(tx pgx.Tx, q *sqlc.Queries) error {
+	err = s.db.InReadTx(ctx, func(tx pgx.Tx, q *sqlc.Queries) error {
 		// Ping the database
 		if err := tx.Conn().Ping(ctx); err != nil {
 			stats["status"] = "down"
 			stats["error"] = fmt.Sprintf("db down: %v", err)
-			return err
+			return fmt.Errorf("ping database: %w", err)
 		}
 
 		// Database is up, add more statistics
 		stats["status"] = "up"
 		stats["message"] = "bing chilling"
 		return nil
-	}); err != nil {
-		return nil, errors.Join(errors.New("failed to ping database"), err)
-	}
+	})
 
-	return stats, nil
+	return
 }
 
 func (s *service) Close() {
