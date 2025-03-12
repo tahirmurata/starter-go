@@ -2,16 +2,31 @@ package web
 
 templ HelloForm() {
 	@Base() {
-		<form hx-post="/hello" method="POST" hx-target="#hello-container">
-			<input class="bg-gray-200 text-black p-2 border border-gray-400 rounded-lg" id="name" name="name" type="text" />
-			<button type="submit" class="bg-orange-500 hover:bg-orange-700 text-white py-2 px-4 rounded">Submit</button>
-		</form>
-		<div id="hello-container"></div>
+		<div class="max-w-sm mx-auto p-4 flex flex-col gap-4">
+			<form hx-post="/hello" method="POST" hx-target="#hello-container" class="join">
+				<div class="w-full">
+					<label class="input validator join-item">
+						<svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+						<input id="name" type="text" placeholder="name" name="name" required pattern="[A-Za-z][A-Za-z0-9\-]*" minlength="3" maxlength="30"/>
+					</label>
+					<div class="validator-hint hidden">
+						Must be 3 to 30 characters
+						<br/>
+						containing only letters, numbers or dash
+					</div>
+				</div>
+				<button type="submit" class="btn btn-neutral join-item">Submit</button>
+			</form>
+			<div id="hello-container"></div>
+		</div>
 	}
 }
 
 templ HelloPost(name string) {
-	<div class="bg-green-100 p-4 shadow-md rounded-lg mt-6 text-5xl text-orange-500">
-		<p>Hello, { name }</p>
+	<div role="alert" class="alert alert-success">
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+		</svg>
+		<span>Hello, { name }!</span>
 	</div>
 }
