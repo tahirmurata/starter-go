@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 
 	// Get host and port
 	hostAndPort := resource.GetHostPort("5432/tcp")
-	host, port, err := net.SplitHostPort(hostAndPort)
+	databaseHost, databasePort, err := net.SplitHostPort(hostAndPort)
 	if err != nil {
 		log.Fatalf("Could not split hostAndPort: %s", err)
 	}
@@ -70,8 +70,8 @@ func TestMain(m *testing.M) {
 			Env:  "test",
 		},
 		Database: config.Database{
-			Host:     host,
-			Port:     port,
+			Host:     databaseHost,
+			Port:     databasePort,
 			Database: databaseName,
 			Username: databaseUsername,
 			Password: databasePassword,
