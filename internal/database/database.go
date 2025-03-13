@@ -64,8 +64,9 @@ func New(cfg *config.Config) (ServiceManager, error) {
 	return dbInstance, initError
 }
 
-func (s *service) Health(ctx context.Context) (stats map[string]string, err error) {
-	err = s.db.InReadTx(ctx, func(tx pgx.Tx, q *sqlc.Queries) error {
+func (s *service) Health(ctx context.Context) (map[string]string, error) {
+	stats := make(map[string]string)
+	err := s.db.InReadTx(ctx, func(tx pgx.Tx, q *sqlc.Queries) error {
 		// Ping the database
 		if err := tx.Conn().Ping(ctx); err != nil {
 			stats["status"] = "down"
@@ -79,7 +80,7 @@ func (s *service) Health(ctx context.Context) (stats map[string]string, err erro
 		return nil
 	})
 
-	return
+	return stats, err
 }
 
 func (s *service) Close() {
