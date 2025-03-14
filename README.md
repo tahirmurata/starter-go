@@ -37,7 +37,7 @@ $ go mod download && bun i
 Live reloading
 
 ```sh
-$ bun run scripts/watch
+$ bun run watch
 ```
 
 ### Generate
@@ -45,7 +45,7 @@ $ bun run scripts/watch
 Generate files
 
 ```sh
-$ bun run scripts/generate
+$ bun run generate
 ```
 
 ### Build
@@ -53,7 +53,15 @@ $ bun run scripts/generate
 Build the Go binary
 
 ```sh
-$ bun run scripts/build
+$ bun run build
+```
+
+### Test
+
+Run tests
+
+```sh
+$ bun run test
 ```
 
 ## License
