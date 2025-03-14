@@ -1,6 +1,9 @@
 {
   "type": "module",
   "scripts": {
+    "test": "go test ./...",
+    "test:database": "go test internal/database/*",
+    "test:server": "go test internal/server/*",
     "watch:go": "go tool github.com/bokwoon95/wgo run cmd/api/main.go",
     "watch:tailwindcss": "tailwindcss --cwd cmd/web -i styles/input.css -o assets/css/output.css -m -w",
     "watch:templ": "go tool github.com/bokwoon95/wgo -file=.templ go tool github.com/a-h/templ/cmd/templ generate",
