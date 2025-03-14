@@ -112,7 +112,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-	srv, err := New(cfg)
+	srv, err := New(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("New() returned error: %s", err)
 	}
@@ -123,7 +123,7 @@ func TestNew(t *testing.T) {
 
 func TestHealth(t *testing.T) {
 	ctx := context.Background()
-	srv, err := New(cfg)
+	srv, err := New(ctx, cfg)
 	if err != nil {
 		t.Fatalf("New() returned error: %s", err)
 	}
@@ -147,7 +147,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	srv, err := New(cfg)
+	srv, err := New(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("New() returned error: %s", err)
 	}

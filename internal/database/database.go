@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ServiceManager represents a service that interacts with a database.
-type ServiceManager interface {
+// Database represents a service that interacts with a database.
+type Database interface {
 	// Health returns a map of health status information.
 	// The keys and values in the map are service-specific.
 	Health(ctx context.Context) (stats map[string]string, err error)
@@ -22,8 +22,8 @@ type ServiceManager interface {
 	Close()
 }
 
-// Manager represents a manager for database operations.
-type Manager interface {
+// helper represents a manager for database operations.
+type helper interface {
 	// InWriteTx runs the passed in function within a transaction with the given isolation level.
 	InWriteTx(ctx context.Context, level pgx.TxIsoLevel, fn func(tx pgx.Tx, q *sqlc.Queries) error) error
 
@@ -39,16 +39,16 @@ type database struct {
 }
 
 type service struct {
-	db Manager
+	db helper
 }
 
 var dbInstance *service
 var once sync.Once
 
-func New(cfg *config.Config) (ServiceManager, error) {
+func New(ctx context.Context, cfg *config.Config) (Database, error) {
 	var initError error
 	once.Do(func() {
-		db, err := pgxpool.New(context.Background(), fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.Schema))
+		db, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.Schema))
 		if err != nil {
 			initError = fmt.Errorf("creating pgx pool: %w", err)
 			return
